@@ -4,7 +4,7 @@
 - [ ] Tạo nhân vật có thể di chuyển trong các vùng được phép (Không được đi ra ngoài 4 khung và đi xuyên chướng ngại)
 - [ ] Tạo bảng UI hiện điểm và thời gian đơn giản
 - [ ] Tạo đĩa hockey có thể tương tác được vật thể trên sân và 4 khung trên sân
-- [ ] Tạo chức năng di chuyển giữa 2 nhân vật
+- [ ] Tạo chức năng đổi giữa 2 nhân vật
 - [ ] Tạo chức năng 2 người chơi (PvP)
 - [ ] Xây dựng AI Agent đơn giản cho nhân vật phụ (Nhân vật không được điều khiển bởi người chơi)
 - [ ] Tạo Menu Setting 
