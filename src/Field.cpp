@@ -33,23 +33,23 @@ void Field::render(SDL_Renderer* renderer, int screenW, int screenH,
 
 void Field::handleCollision(Ball& ball) const {
     // left wall
-    if (ball.x - ball.radius < 0.0f) {
-        ball.x = ball.radius;
-        ball.vx = -ball.vx; 
+    if (ball.pos.x - ball.radius < 0.0f) {
+        ball.pos.x = ball.radius;
+        ball.vel.x = -ball.vel.x;
     }
     // right wall
-    if (ball.x + ball.radius > width) {
-        ball.x = width - ball.radius;
-        ball.vx = -ball.vx;
+    if (ball.pos.x + ball.radius > width) {
+        ball.pos.x = width - ball.radius;
+        ball.vel.x = -ball.vel.x;
     }
     // top wall
-    if (ball.y - ball.radius < 0.0f) {
-        ball.y = ball.radius;
-        ball.vy = -ball.vy;
+    if (ball.pos.y - ball.radius < 0.0f) {
+        ball.pos.y = ball.radius;
+        ball.vel.y = -ball.vel.y;
     }
     // bottom wall
-    if (ball.y + ball.radius > height) {
-        ball.y = height - ball.radius;
-        ball.vy = -ball.vy;
+    if (ball.pos.y + ball.radius > height) {
+        ball.pos.y = height - ball.radius;
+        ball.vel.y = -ball.vel.y;
     }
 }

@@ -3,14 +3,14 @@
 #include <cmath> // for sqrt
 #include <algorithm> // for std::min
 
-Ball::Ball(float startX, float startY,
-           float startVx, float startVy,
+Ball::Ball(const Vector& startPos,
+           const Vector& startVel,
            float r)
-    : x(startX), y(startY), vx(startVx), vy(startVy), radius(r) {}
+    : pos(startPos), vel(startVel), radius(r) {}
 
 void Ball::update(float dt) {
-    x += vx * dt;
-    y += vy * dt;
+    // simple linear motion: pos += vel * dt
+    pos += vel * dt;
 }
 
 
@@ -29,8 +29,8 @@ void Ball::render(SDL_Renderer* renderer, const Field& field,
     float sx = screenW / field.getWidth();
     float sy = screenH / field.getHeight();
 
-    int px = static_cast<int>(x * sx);
-    int py = static_cast<int>(y * sy);
+    int px = static_cast<int>(pos.x * sx);
+    int py = static_cast<int>(pos.y * sy);
 
     // compute radius in pixels; prefer uniform scaling so ball remains circular
     int pr = static_cast<int>(radius * std::min(sx, sy));

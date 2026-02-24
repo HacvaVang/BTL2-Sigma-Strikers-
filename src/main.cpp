@@ -16,8 +16,12 @@ int main(int argc, char** argv) {
 
     // create field (40m x 20m by default) and a white puck that will bounce
     Field field(40.0f, 20.0f);
-    Ball ball(field.getWidth() / 2.0f, field.getHeight() / 2.0f,
-              10.0f, 8.0f, 0.5f);
+    // start the ball in the centre with an initial velocity
+    Ball ball(
+        Vector(field.getWidth() / 2.0f, field.getHeight() / 2.0f),
+        Vector(10.0f, 8.0f),
+        0.5f
+    );
 
     bool running = true;
     Uint32 lastTicks = SDL_GetTicks();

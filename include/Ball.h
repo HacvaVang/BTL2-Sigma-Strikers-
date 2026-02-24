@@ -1,5 +1,6 @@
 #pragma once
 #include <SDL.h>
+#include "Vector.h"
 
 class Field; // forward declaration so Ball can reference it without including
 
@@ -7,8 +8,10 @@ class Field; // forward declaration so Ball can reference it without including
 // metres and metres/second.  The radius is also in metres.
 class Ball {
 public:
-    Ball(float startX = 0.0f, float startY = 0.0f,
-         float startVx = 0.0f, float startVy = 0.0f,
+    // The constructor takes optional starting position and velocity vectors
+    // (defaulting to zero) along with a radius.
+    Ball(const Vector& startPos = Vector(),
+         const Vector& startVel = Vector(),
          float r = 0.5f);
 
     // advance the ball by dt seconds (simple linear motion)
@@ -22,7 +25,7 @@ public:
                 int screenW, int screenH,
                 SDL_Texture *texture = nullptr) const;
 
-    float x, y;        // position in metres
-    float vx, vy;      // velocity in metres per second
+    Vector pos;        // position in metres
+    Vector vel;        // velocity in metres per second
     float radius;      // metres
 };
