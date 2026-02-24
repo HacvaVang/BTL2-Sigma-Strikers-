@@ -14,19 +14,32 @@ cmake .. -DCMAKE_TOOLCHAIN_FILE=[path-to-vcpkg]/scripts/buildsystems/vcpkg.cmake
 cmake --build . --config Release
 ```
 
-Run: the executable `sigma_strikers` will look for sprites under
-`assets/sprite/`.  Currently two images are used:
+Run: the executable `sigma_strikers` will look for `assets/sprite.png`.
 
-* `football_field.jpeg` – stretched to fill the window as the field
-  background
-* `ball.png` – drawn centred on the puck and scaled to the ball's radius
+If you don't have a sprite, the demo will render a placeholder rectangle.
 
-If the textures are missing the program falls back to a solid-colour field
-and a white filled circle for the ball.
+# TO DO LIST
 
-## Hockey Field Demo
+## High Priority
+- [ ] Tạo nhân vật có thể di chuyển trong các vùng được phép (Không được đi ra ngoài 4 khung và đi xuyên chướng ngại)
+- [ ] Tạo bảng UI hiện điểm và thời gian đơn giản
+- [ ] Tạo đĩa hockey có thể tương tác được vật thể trên sân và 4 khung trên sân
+- [ ] Tạo chức năng đổi giữa 2 nhân vật
+- [ ] Tạo chức năng 2 người chơi (PvP)
+- [ ] Xây dựng AI Agent đơn giản cho nhân vật phụ (Nhân vật không được điều khiển bởi người chơi)
+- [ ] Tạo Menu Setting 
 
-The application now includes a simple hockey field scaled to the window (40 m × 20 m by
-default) with four barrier walls. A white puck moves across the field and
-*bounces* off the barriers automatically. This demonstrates basic world-to-screen
-scaling and collision handling using a `Field` and `Ball` class.
+## Medium Priority
+- [ ] Xây dựng kĩ năng nhân vật
+- [ ] Tạo effect nhân vật
+- [ ] Xây dựng UI đơn giản hiển thị nhân vật, skill
+- [ ] Thêm Animation cho skill
+- [ ] Thêm Animation cho UI
+- [ ] Hiển thị bảng chọn nhân vật
+- [ ] Thêm chức năng tạo gió trong game
+
+## Low Priority
+- [ ] Xây dựng chức năng PvE (đấu với máy)
+- [ ] Trau chuốt UI
+- [ ] Thêm OST, BGM cho game
+- [ ] Tối ưu hóa con game
