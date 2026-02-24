@@ -1,5 +1,4 @@
 #pragma once
-
 #include <SDL.h>
 
 class Field; // forward declaration so Ball can reference it without including
