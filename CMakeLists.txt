@@ -13,6 +13,7 @@ add_executable(sigma_strikers
     src/main.cpp
     src/SDLFramework.cpp
     src/Menu.cpp
+    src/Team.cpp
     src/Field.cpp
     src/Ball.cpp
 )

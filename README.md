@@ -27,6 +27,19 @@ simple white circle placeholder is drawn.
 > **Tip:** rerun `cmake ..` after changing compiler options or switching between
 > Debug/Release to update the project files.
 
+## Controls & new team support
+
+A simple `Team` class has been added; each team contains two `Player` objects
+and tracks a `score` value.  Only the active player accepts input, and the
+active member can be switched during play.
+
+- WASD — move the active player around the field
+- **E** — swap control to the other team member
+
+Players are rendered as coloured circles (red/green), the active one is bright.
+Field boundaries are enforced automatically.  More game logic (scoring,
+multiplayer, etc.) can be built on top of the `Team`/`Player` API.
+
 
 
 # TO DO LIST

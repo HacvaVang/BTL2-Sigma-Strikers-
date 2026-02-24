@@ -114,3 +114,151 @@ bool showResolutionMenu(SDLFramework &app) {
 
     return false;
 }
+
+// -----------------------------------------------------------------------------
+// Simple main menu and tutorial helpers
+// -----------------------------------------------------------------------------
+
+// draw a single text item centered in given rect
+static void drawText(SDL_Renderer* renderer, TTF_Font* font,
+                     const std::string &text, SDL_Rect dst, SDL_Color color) {
+    SDL_Surface* surf = TTF_RenderText_Solid(font, text.c_str(), color);
+    if (!surf) return;
+    SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
+    if (tex) {
+        SDL_Rect r = dst;
+        r.w = surf->w;
+        r.h = surf->h;
+        r.x += (dst.w - surf->w) / 2;
+        r.y += (dst.h - surf->h) / 2;
+        SDL_RenderCopy(renderer, tex, nullptr, &r);
+        SDL_DestroyTexture(tex);
+    }
+    SDL_FreeSurface(surf);
+}
+
+MainMenuChoice showMainMenu(SDLFramework &app) {
+    SDL_Renderer* renderer = app.getRenderer();
+    if (!renderer) return MENU_QUIT;
+
+    if (TTF_Init() == -1) {
+        std::cerr << "TTF_Init failed: " << TTF_GetError() << std::endl;
+        return MENU_QUIT;
+    }
+    TTF_Font* font = TTF_OpenFont("assets/fonts/mohave-semibold.otf", 32);
+    if (!font) {
+        std::cerr << "Could not load font: " << TTF_GetError() << std::endl;
+        TTF_Quit();
+        return MENU_QUIT;
+    }
+
+    std::vector<std::string> options = {"Play", "Tutorial", "Settings", "Quit"};
+    int selected = 0;
+    bool running = true;
+    SDL_Event e;
+
+    while (running) {
+        while (SDL_PollEvent(&e)) {
+            if (e.type == SDL_QUIT) {
+                selected = (int)options.size() - 1; // Quit
+                running = false;
+            }
+            if (e.type == SDL_KEYDOWN) {
+                switch (e.key.keysym.sym) {
+                    case SDLK_UP:
+                        selected = (selected - 1 + (int)options.size()) % options.size();
+                        break;
+                    case SDLK_DOWN:
+                        selected = (selected + 1) % options.size();
+                        break;
+                    case SDLK_ESCAPE:
+                        selected = (int)options.size() - 1;
+                        running = false;
+                        break;
+                    case SDLK_RETURN:
+                    case SDLK_KP_ENTER:
+                        running = false;
+                        break;
+                }
+            }
+        }
+
+        int w = app.getWidth();
+        int h = app.getHeight();
+        SDL_SetRenderDrawColor(renderer, 10, 10, 30, 255);
+        SDL_RenderClear(renderer);
+
+        int itemH = 70;
+        int spacing = 20;
+        int totalH = (int)options.size() * itemH + ((int)options.size() - 1) * spacing;
+        int startY = h/2 - totalH/2;
+
+        for (size_t i = 0; i < options.size(); ++i) {
+            SDL_Rect rect = { w/2 - 220/2, startY + (int)i * (itemH + spacing), 220, itemH };
+            SDL_SetRenderDrawColor(renderer,
+                (int)i == selected ? 200 : 100,
+                (int)i == selected ? 200 : 100,
+                (int)i == selected ? 255 : 100,
+                255);
+            SDL_RenderFillRect(renderer, &rect);
+            SDL_Color txtCol = (i == (size_t)selected) ? SDL_Color{20,20,60,255} : SDL_Color{220,220,220,255};
+            drawText(renderer, font, options[i], rect, txtCol);
+        }
+
+        SDL_RenderPresent(renderer);
+        SDL_Delay(16);
+    }
+
+    TTF_CloseFont(font);
+    TTF_Quit();
+
+    return static_cast<MainMenuChoice>(selected);
+}
+
+void showTutorial(SDLFramework &app) {
+    SDL_Renderer* renderer = app.getRenderer();
+    if (!renderer) return;
+    if (TTF_Init() == -1) return;
+    TTF_Font* font = TTF_OpenFont("assets/fonts/mohave-semibold.otf", 24);
+    if (!font) {
+        TTF_Quit();
+        return;
+    }
+
+    SDL_Event e;
+    bool running = true;
+    while (running) {
+        while (SDL_PollEvent(&e)) {
+            if (e.type == SDL_QUIT) {
+                running = false;
+            }
+            if (e.type == SDL_KEYDOWN || e.type == SDL_MOUSEBUTTONDOWN) {
+                running = false;
+            }
+        }
+
+        int w = app.getWidth();
+        int h = app.getHeight();
+        SDL_SetRenderDrawColor(renderer, 30, 30, 50, 255);
+        SDL_RenderClear(renderer);
+
+        std::vector<std::string> lines = {
+            "Tutorial", 
+            "Use arrow keys to move.",
+            "Press ESC to quit or return to menu.",
+            "Press any key or click to go back."
+        };
+        int y = 60;
+        for (auto &ln : lines) {
+            SDL_Rect r = {20, y, w-40, 40};
+            drawText(renderer, font, ln, r, SDL_Color{220,220,220,255});
+            y += 50;
+        }
+        SDL_RenderPresent(renderer);
+        SDL_Delay(16);
+    }
+
+    TTF_CloseFont(font);
+    TTF_Quit();
+}
+
