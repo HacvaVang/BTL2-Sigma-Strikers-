@@ -2,21 +2,32 @@
 
 Small C++ SDL2 starter framework with a render loop, input handling, and optional sprite loading.
 
-Build (recommended):
+## Building the Project ✅
 
-- Install SDL2 and SDL2_image on your system or via vcpkg.
-- Example (using CMake):
+The easiest way to build is with CMake (tested on Windows).
+Follow these steps from a PowerShell prompt:
 
 ```powershell
-mkdir build
-cd build
-cmake .. -DCMAKE_TOOLCHAIN_FILE=[path-to-vcpkg]/scripts/buildsystems/vcpkg.cmake
-cmake --build . --config Release
+# from the repository root
+office> mkdir build          # create an out-of-source folder
+office> cd build
+office> cmake ..               # configure; vcpkg users may wish to pass
+                              # -DCMAKE_TOOLCHAIN_FILE="<path>\vcpkg\scripts\buildsystems\vcpkg.cmake"
+office> cmake --build .      # build default configuration (Debug/Release)
 ```
 
-Run: the executable `sigma_strikers` will look for `assets/sprite.png`.
+CMake will automatically find SDL2/SDL2_image if they are installed system-wide or
+if you add them via vcpkg.  You can also build with `cmake --build . --config Release`
+for an optimized build.
 
-If you don't have a sprite, the demo will render a placeholder rectangle.
+The resulting executable (`sigma_strikers` or `sigma_strikers.exe` on Windows) will
+look for `assets/sprite.png` in the working directory.  If the file is missing a
+simple white circle placeholder is drawn.
+
+> **Tip:** rerun `cmake ..` after changing compiler options or switching between
+> Debug/Release to update the project files.
+
+
 
 # TO DO LIST
 
