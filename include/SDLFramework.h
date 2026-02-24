@@ -18,10 +18,16 @@ public:
     SDL_Window* getWindow();
     int getWidth() const;
     int getHeight() const;
+
+    // access to loaded sprites (may be nullptr if loading failed)
+    SDL_Texture* getFieldTexture() const { return fieldTexture; }
+    SDL_Texture* getBallTexture() const { return ballTexture; }
 private:
     SDL_Window* window;
     SDL_Renderer* renderer;
     SDL_Texture* sprite;
+    SDL_Texture* fieldTexture;
+    SDL_Texture* ballTexture;
     bool running;
     int width;
     int height;

@@ -3,10 +3,13 @@
 #include <iostream>
 
 SDLFramework::SDLFramework()
-: window(nullptr), renderer(nullptr), sprite(nullptr), running(false), width(800), height(600) {}
+: window(nullptr), renderer(nullptr), sprite(nullptr), fieldTexture(nullptr),
+  ballTexture(nullptr), running(false), width(800), height(600) {}
 
 SDLFramework::~SDLFramework() {
     if (sprite) SDL_DestroyTexture(sprite);
+    if (fieldTexture) SDL_DestroyTexture(fieldTexture);
+    if (ballTexture) SDL_DestroyTexture(ballTexture);
     if (renderer) SDL_DestroyRenderer(renderer);
     if (window) SDL_DestroyWindow(window);
     IMG_Quit();
@@ -36,12 +39,17 @@ bool SDLFramework::init(const std::string &title, int w, int h) {
         return false;
     }
 
-    // Try to load sprite if present
-    sprite = IMG_LoadTexture(renderer, "assets/sprite.png");
-    if (!sprite) {
-        // not fatal; we'll render a simple rectangle instead
-        std::cerr << "No sprite loaded (assets/sprite.png): " << IMG_GetError() << std::endl;
+    // load our two specific sprites, allow failure
+    fieldTexture = IMG_LoadTexture(renderer, "assets/sprite/football_field.jpeg");
+    if (!fieldTexture) {
+        std::cerr << "Failed to load field texture: " << IMG_GetError() << std::endl;
     }
+    ballTexture = IMG_LoadTexture(renderer, "assets/sprite/ball.png");
+    if (!ballTexture) {
+        std::cerr << "Failed to load ball texture: " << IMG_GetError() << std::endl;
+    }
+    // legacy single-sprite slot kept for backwards compatibility (unused)
+    sprite = nullptr;
 
     running = true;
     return true;
@@ -74,11 +82,18 @@ bool SDLFramework::setResolution(int w, int h) {
         return false;
     }
 
-    // reload sprite if available
-    sprite = IMG_LoadTexture(renderer, "assets/sprite.png");
-    if (!sprite) {
-        std::cerr << "No sprite loaded after setResolution (assets/sprite.png): " << IMG_GetError() << std::endl;
+    // reload field and ball textures
+    if (fieldTexture) { SDL_DestroyTexture(fieldTexture); fieldTexture = nullptr; }
+    if (ballTexture) { SDL_DestroyTexture(ballTexture); ballTexture = nullptr; }
+    fieldTexture = IMG_LoadTexture(renderer, "assets/sprite/football_field.jpeg");
+    if (!fieldTexture) {
+        std::cerr << "Failed to reload field texture: " << IMG_GetError() << std::endl;
     }
+    ballTexture = IMG_LoadTexture(renderer, "assets/sprite/ball.png");
+    if (!ballTexture) {
+        std::cerr << "Failed to reload ball texture: " << IMG_GetError() << std::endl;
+    }
+    sprite = nullptr; // keep clear
 
     return true;
 }
