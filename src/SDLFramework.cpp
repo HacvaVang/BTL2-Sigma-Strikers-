@@ -40,7 +40,7 @@ bool SDLFramework::init(const std::string &title, int w, int h) {
     }
 
     // load our two specific sprites, allow failure
-    fieldTexture = IMG_LoadTexture(renderer, "assets/sprite/football_field.jpeg");
+    fieldTexture = IMG_LoadTexture(renderer, "assets/sprite/football_field.png");
     if (!fieldTexture) {
         std::cerr << "Failed to load field texture: " << IMG_GetError() << std::endl;
     }
@@ -85,7 +85,7 @@ bool SDLFramework::setResolution(int w, int h) {
     // reload field and ball textures
     if (fieldTexture) { SDL_DestroyTexture(fieldTexture); fieldTexture = nullptr; }
     if (ballTexture) { SDL_DestroyTexture(ballTexture); ballTexture = nullptr; }
-    fieldTexture = IMG_LoadTexture(renderer, "assets/sprite/football_field.jpeg");
+    fieldTexture = IMG_LoadTexture(renderer, "assets/sprite/football_field.png");
     if (!fieldTexture) {
         std::cerr << "Failed to reload field texture: " << IMG_GetError() << std::endl;
     }

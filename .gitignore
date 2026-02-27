@@ -6,3 +6,5 @@ build/
 *.log/
 .cache/
 bin/
+/%CACHE%
+copilot-commit-message-instructions.md
