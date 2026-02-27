@@ -2,12 +2,36 @@
 #include <SDL_image.h>
 #include <iostream>
 
+bool scaleTexturePercentage(SDL_Texture* &tex, SDL_Renderer* renderer, float scale) {
+    if (!tex) return false;
+    int w, h;
+    if (SDL_QueryTexture(tex, nullptr, nullptr, &w, &h) != 0) {
+        return false;
+    }
+    int newW = static_cast<int>(w * scale);
+    int newH = static_cast<int>(h * scale);
+    std::cout << "Scaling texture from " << w << "x" << h << " to " << newW << "x" << newH << std::endl;
+    SDL_Texture* scaledTex = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888,
+                                               SDL_TEXTUREACCESS_TARGET, newW, newH);
+    if (!scaledTex) {
+        return false;
+    }
+    // render original texture onto the new one with scaling
+    SDL_SetRenderTarget(renderer, scaledTex);
+    SDL_RenderCopy(renderer, tex, nullptr, nullptr);
+    SDL_SetRenderTarget(renderer, nullptr);
+    // replace original texture with the scaled one
+    SDL_DestroyTexture(tex);
+    tex = scaledTex;
+    return true;
+}
+
+
 SDLFramework::SDLFramework()
-: window(nullptr), renderer(nullptr), sprite(nullptr), fieldTexture(nullptr),
-  ballTexture(nullptr), running(false), width(800), height(600) {}
+: window(nullptr), renderer(nullptr), fieldTexture(nullptr),
+  ballTexture(nullptr), playerTexture(nullptr), running(false), width(800), height(600) {}
 
 SDLFramework::~SDLFramework() {
-    if (sprite) SDL_DestroyTexture(sprite);
     if (fieldTexture) SDL_DestroyTexture(fieldTexture);
     if (ballTexture) SDL_DestroyTexture(ballTexture);
     if (renderer) SDL_DestroyRenderer(renderer);
@@ -48,8 +72,12 @@ bool SDLFramework::init(const std::string &title, int w, int h) {
     if (!ballTexture) {
         std::cerr << "Failed to load ball texture: " << IMG_GetError() << std::endl;
     }
-    // legacy single-sprite slot kept for backwards compatibility (unused)
-    sprite = nullptr;
+    // load player sprite (optional)
+    playerTexture = IMG_LoadTexture(renderer, "assets/sprite/player.png");
+    scaleTexturePercentage(playerTexture, renderer, 0.08f); // scale player sprite to 50% for better fit
+    if (!playerTexture) {
+        std::cerr << "Failed to load player texture: " << IMG_GetError() << std::endl;
+    }
 
     running = true;
     return true;
@@ -57,9 +85,9 @@ bool SDLFramework::init(const std::string &title, int w, int h) {
 
 bool SDLFramework::setResolution(int w, int h) {
     // destroy renderer and window, then recreate with new size
-    if (sprite) {
-        SDL_DestroyTexture(sprite);
-        sprite = nullptr;
+    if (playerTexture) {
+        SDL_DestroyTexture(playerTexture);
+        playerTexture = nullptr;
     }
     if (renderer) {
         SDL_DestroyRenderer(renderer);
@@ -93,7 +121,12 @@ bool SDLFramework::setResolution(int w, int h) {
     if (!ballTexture) {
         std::cerr << "Failed to reload ball texture: " << IMG_GetError() << std::endl;
     }
-    sprite = nullptr; // keep clear
+    playerTexture = IMG_LoadTexture(renderer, "assets/sprite/player.png");
+    scaleTexturePercentage(playerTexture, renderer, 0.08f); // scale player sprite to 50% for better fit
+
+    if (!playerTexture) {
+        std::cerr << "Failed to load player texture: " << IMG_GetError() << std::endl;
+    }    
 
     return true;
 }
@@ -115,15 +148,6 @@ void SDLFramework::run() {
 
         SDL_SetRenderDrawColor(renderer, 20, 20, 40, 255);
         SDL_RenderClear(renderer);
-
-        if (sprite) {
-            SDL_Rect dst{ width/2 - 64, height/2 - 64, 128, 128 };
-            SDL_RenderCopy(renderer, sprite, nullptr, &dst);
-        } else {
-            SDL_SetRenderDrawColor(renderer, 200, 80, 80, 255);
-            SDL_Rect r{ width/2 - 50, height/2 - 50, 100, 100 };
-            SDL_RenderFillRect(renderer, &r);
-        }
 
         SDL_RenderPresent(renderer);
         SDL_Delay(16);

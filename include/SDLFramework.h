@@ -4,6 +4,7 @@
 #include <SDL.h>
 #include <string>
 
+
 class SDLFramework {
 public:
     SDLFramework();
@@ -19,18 +20,21 @@ public:
     int getWidth() const;
     int getHeight() const;
 
-    // access to loaded sprites (may be nullptr if loading failed)
     SDL_Texture* getFieldTexture() const { return fieldTexture; }
     SDL_Texture* getBallTexture() const { return ballTexture; }
+    SDL_Texture* getPlayerTexture() const { return playerTexture; }
 private:
     SDL_Window* window;
     SDL_Renderer* renderer;
-    SDL_Texture* sprite;
     SDL_Texture* fieldTexture;
     SDL_Texture* ballTexture;
+    SDL_Texture* playerTexture;    // new player sprite slot
     bool running;
     int width;
     int height;
 };
+
+
+
 
 #endif // SDLFRAMEWORK_H

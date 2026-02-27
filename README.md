@@ -33,12 +33,18 @@ A simple `Team` class has been added; each team contains two `Player` objects
 and tracks a `score` value.  Only the active player accepts input, and the
 active member can be switched during play.
 
-- WASD — move the active player around the field
-- **E** — swap control to the other team member
+- WASD — move the active player around the field for team 1
+- **E** — swap control to the other team 1 member
+- Arrow keys — move team 2's active player
+- **Right Shift** — swap control between team 2 members
 
-Players are rendered as coloured circles (red/green), the active one is bright.
-Field boundaries are enforced automatically.  More game logic (scoring,
-multiplayer, etc.) can be built on top of the `Team`/`Player` API.
+Players are rendered as coloured circles (team‑colours) when no sprite is
+available; if `assets/sprite/player.png` exists it is used and tinted.  A
+basic UI overlay shows each team's score and elapsed time, and simple
+scoring logic awards a point when the puck leaves the left or right edge
+of the field.  Field boundaries are enforced automatically.  More game
+logic (multiplayer, AI, etc.) can be built on top of the `Team`/`Player`
+API.
 
 
 
