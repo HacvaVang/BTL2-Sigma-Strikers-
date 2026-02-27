@@ -1,88 +1,285 @@
 #include "../include/SDLFramework.h"
 #include "../include/Field.h"
 #include "../include/Ball.h"
-#include <iostream>
-#include "../include/Menu.h"
 #include "../include/Team.h"
+#include "../include/Menu.h"
+#include "../include/HUD.h"
+#include "../include/AIAgent.h"
+#include <iostream>
+#include <cstdio>
+#include <cmath>
+#include <string>
 
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
+// ============================================================================
+// Game state
+// ============================================================================
+enum GameMode {
+    MODE_VS_AI,   // Player vs AI (single player controls Team 1)
+    MODE_PVP      // Player vs Player (local 2-player)
+};
+
+// Reset positions after a goal
+static void resetAfterGoal(Team &team1, Team &team2, Ball &ball, const Field &field) {
+    // Team 1 on left side
+    team1.resetPositions(
+        Vector(field.getWidth() * 0.2f, field.getHeight() * 0.35f),
+        Vector(field.getWidth() * 0.2f, field.getHeight() * 0.65f)
+    );
+    // Team 2 on right side
+    team2.resetPositions(
+        Vector(field.getWidth() * 0.8f, field.getHeight() * 0.35f),
+        Vector(field.getWidth() * 0.8f, field.getHeight() * 0.65f)
+    );
+    // Ball to center
+    ball.reset(Vector(field.getWidth() / 2.0f, field.getHeight() / 2.0f), Vector(0, 0));
+}
+
+// ============================================================================
+// Main
+// ============================================================================
 int main(int argc, char** argv) {
+#ifdef _WIN32
+    if (AttachConsole(ATTACH_PARENT_PROCESS) || AllocConsole()) {
+        freopen("CONOUT$", "w", stdout);
+        freopen("CONOUT$", "w", stderr);
+    }
+#endif
+    SDL_Log("=== Sigma Strikers starting ===");
+
     SDLFramework app;
-    if (!app.init("Sigma Strikers - SDL Framework", 1024, 768)) {
-        std::cerr << "Failed to initialize SDL framework" << std::endl;
+    if (!app.init("Sigma Strikers", 1024, 768)) {
+        SDL_Log("Failed to initialize SDL framework");
         return 1;
     }
+    SDL_Log("SDL Framework initialized successfully");
 
-    // present a main menu until user chooses to play or quit
+    // ---- Main Menu Loop ----
+    GameMode gameMode = MODE_VS_AI;
     bool wantToPlay = false;
+
     while (true) {
         MainMenuChoice choice = showMainMenu(app);
         if (choice == MENU_PLAY) {
+            gameMode = MODE_VS_AI;
+            wantToPlay = true;
+            break;
+        } else if (choice == MENU_PVP) {
+            gameMode = MODE_PVP;
             wantToPlay = true;
             break;
         } else if (choice == MENU_TUTORIAL) {
             showTutorial(app);
-            continue; // return to main menu
+            continue;
         } else if (choice == MENU_SETTINGS) {
-            showResolutionMenu(app);
+            showSettingsMenu(app);
             continue;
         } else {
-            // quit or closed window
-            break;
+            break; // quit
         }
     }
 
-    if (!wantToPlay) {
-        return 0; // exit application
-    }
+    if (!wantToPlay) return 0;
 
-    // create field (40m x 20m by default) and a white puck that will bounce
+    // ---- Initialize Game Objects ----
     Field field(40.0f, 20.0f);
-    // start the ball in the centre with an initial velocity
+
+    // Ball starts at center, stationary
     Ball ball(
         Vector(field.getWidth() / 2.0f, field.getHeight() / 2.0f),
-        Vector(10.0f, 8.0f),
+        Vector(0, 0),
         0.5f
     );
 
-    // single team example; two players start on left half of the field
-    Team team(Vector(5.0f, 5.0f), Vector(5.0f, 15.0f));
+    // Team 1 (Blue, left side) - WASD + E to swap
+    KeyBindings kb1 = {SDL_SCANCODE_W, SDL_SCANCODE_S, SDL_SCANCODE_A, SDL_SCANCODE_D, SDLK_e};
+    Team team1(
+        Vector(field.getWidth() * 0.2f, field.getHeight() * 0.35f),
+        Vector(field.getWidth() * 0.2f, field.getHeight() * 0.65f),
+        kb1
+    );
+
+    // Team 2 (Red, right side) - Arrow keys + Right Shift to swap
+    KeyBindings kb2 = {SDL_SCANCODE_UP, SDL_SCANCODE_DOWN, SDL_SCANCODE_LEFT, SDL_SCANCODE_RIGHT, SDLK_RSHIFT};
+    Team team2(
+        Vector(field.getWidth() * 0.8f, field.getHeight() * 0.35f),
+        Vector(field.getWidth() * 0.8f, field.getHeight() * 0.65f),
+        kb2
+    );
+
+    // HUD
+    HUD hud;
+    if (!hud.init("assets/fonts/mohave-semibold.otf", 24)) {
+        SDL_Log("Warning: HUD font failed to load");
+    }
+
+    // AI Agents (for inactive players)
+    AIAgent ai1(0.6f);  // Team 1 AI (controls inactive player)
+    AIAgent ai2(0.6f);  // Team 2 AI (controls inactive player)
+
+    // Game timer
+    float matchTime = (float)gSettings.matchDuration;
+    float goalMessageTimer = 0.0f;
+    std::string goalMessage;
+    bool gameOver = false;
 
     bool running = true;
     Uint32 lastTicks = SDL_GetTicks();
     SDL_Event e;
 
-    // manual game loop so we can update/render our own objects
+    // ---- Game Loop ----
     while (running) {
         while (SDL_PollEvent(&e)) {
             if (e.type == SDL_QUIT) running = false;
             if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_ESCAPE) running = false;
-            // pass event to team for swapping
-            team.handleEvent(e);
+
+            if (!gameOver) {
+                // Team 1 always player-controlled
+                team1.handleEvent(e);
+
+                // Team 2: player-controlled in PvP, AI in vs-AI mode
+                if (gameMode == MODE_PVP) {
+                    team2.handleEvent(e);
+                }
+            }
+
+            // R to restart after game over
+            if (gameOver && e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_r) {
+                // Reset everything
+                team1.score = 0;
+                team2.score = 0;
+                matchTime = (float)gSettings.matchDuration;
+                gameOver = false;
+                goalMessageTimer = 0;
+                resetAfterGoal(team1, team2, ball, field);
+            }
         }
 
         Uint32 now = SDL_GetTicks();
         float dt = (now - lastTicks) / 1000.0f;
+        if (dt > 0.05f) dt = 0.05f; // cap delta time
         lastTicks = now;
 
-        const Uint8 *keys = SDL_GetKeyboardState(NULL);
-        team.update(dt, keys, &field);
+        if (!gameOver) {
+            // Update timer
+            matchTime -= dt;
+            if (matchTime <= 0.0f) {
+                matchTime = 0.0f;
+                gameOver = true;
+                if (team1.score > team2.score) {
+                    goalMessage = "TEAM 1 WINS!";
+                } else if (team2.score > team1.score) {
+                    goalMessage = "TEAM 2 WINS!";
+                } else {
+                    goalMessage = "DRAW!";
+                }
+                goalMessageTimer = 99999.0f; // show forever until restart
+            }
 
-        ball.update(dt);
-        field.handleCollision(ball);
+            // Goal message countdown
+            if (goalMessageTimer > 0) {
+                goalMessageTimer -= dt;
+            }
 
+            const Uint8 *keys = SDL_GetKeyboardState(NULL);
+
+            // Update Team 1 (always player-controlled)
+            team1.update(dt, keys, &field);
+
+            // Update Team 2
+            if (gameMode == MODE_PVP) {
+                team2.update(dt, keys, &field);
+            } else {
+                // In vs AI mode, AI controls both team2 players
+                ai2.update(dt, team2.getActivePlayer(), ball, field, false);
+                ai2.update(dt, team2.getInactivePlayer(), ball, field, false);
+            }
+
+            // AI controls inactive players (both modes)
+            ai1.update(dt, team1.getInactivePlayer(), ball, field, true);
+            if (gameMode == MODE_PVP) {
+                ai2.update(dt, team2.getInactivePlayer(), ball, field, false);
+            }
+
+            // Update ball
+            ball.update(dt);
+
+            // Ball-player collisions (all 4 players)
+            ball.handlePlayerCollision(team1.p1, team1.p1.radius);
+            ball.handlePlayerCollision(team1.p2, team1.p2.radius);
+            ball.handlePlayerCollision(team2.p1, team2.p1.radius);
+            ball.handlePlayerCollision(team2.p2, team2.p2.radius);
+
+            // Ball-wall collisions & goal detection
+            int goalResult = field.handleCollision(ball);
+            if (goalResult == 1) {
+                // Left goal - Team 2 scores
+                team2.score++;
+                goalMessage = "TEAM 2 SCORES!";
+                goalMessageTimer = 2.0f;
+                resetAfterGoal(team1, team2, ball, field);
+            } else if (goalResult == 2) {
+                // Right goal - Team 1 scores
+                team1.score++;
+                goalMessage = "TEAM 1 SCORES!";
+                goalMessageTimer = 2.0f;
+                resetAfterGoal(team1, team2, ball, field);
+            }
+        }
+
+        // ---- Render ----
         SDL_SetRenderDrawColor(app.getRenderer(), 20, 20, 40, 255);
         SDL_RenderClear(app.getRenderer());
 
+        // Field
         field.render(app.getRenderer(), app.getWidth(), app.getHeight(),
-                      app.getFieldTexture());
-        // render team players on top of field
-        team.render(app.getRenderer(), field, app.getWidth(), app.getHeight());
+                     app.getFieldTexture());
+
+        // Teams with their colors
+        SDL_Color team1Active   = {80, 140, 255, 255};   // bright blue
+        SDL_Color team1Inactive = {40, 70, 140, 200};    // dim blue
+        SDL_Color team2Active   = {255, 80, 80, 255};    // bright red
+        SDL_Color team2Inactive = {140, 40, 40, 200};    // dim red
+
+        team1.render(app.getRenderer(), field, app.getWidth(), app.getHeight(),
+                     team1Active, team1Inactive);
+        team2.render(app.getRenderer(), field, app.getWidth(), app.getHeight(),
+                     team2Active, team2Inactive);
+
+        // Ball
         ball.render(app.getRenderer(), field, app.getWidth(), app.getHeight(),
                     app.getBallTexture());
+
+        // HUD (scores + timer)
+        hud.render(app.getRenderer(), app.getWidth(), app.getHeight(),
+                   team1.score, team2.score, matchTime);
+
+        // Goal / Game Over message
+        if (goalMessageTimer > 0) {
+            hud.renderMessage(app.getRenderer(), app.getWidth(), app.getHeight(),
+                              goalMessage);
+            if (gameOver) {
+                // Also show restart instruction
+                SDL_Color white = {200, 200, 200, 255};
+                // Small text below the message
+                SDL_SetRenderDrawBlendMode(app.getRenderer(), SDL_BLENDMODE_BLEND);
+                // We'll use HUD's renderMessage for now, it shows the main message
+                // The "Press R to restart" is handled via a secondary call
+            }
+        }
+
+        // If game over, show restart text
+        if (gameOver) {
+            hud.renderMessage(app.getRenderer(), app.getWidth(), app.getHeight(),
+                              goalMessage);
+        }
 
         SDL_RenderPresent(app.getRenderer());
         SDL_Delay(16);
     }
-    
+
     return 0;
 }
