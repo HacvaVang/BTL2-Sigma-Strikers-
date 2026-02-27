@@ -9,17 +9,25 @@ static float clamp(float v, float lo, float hi) {
     return v;
 }
 
-void Player::update(float dt, const Uint8 *keyState, const Field *bounds) {
-    // legacy convenience wrapper for standard WASD controls
+void Player::update(float dt, const Uint8 *keyState, const KeyBindings &keys,
+                    const Field *bounds) {
     Vector dir(0, 0);
-    if (keyState[SDL_SCANCODE_W]) dir.y -= 1;
-    if (keyState[SDL_SCANCODE_S]) dir.y += 1;
-    if (keyState[SDL_SCANCODE_A]) dir.x -= 1;
-    if (keyState[SDL_SCANCODE_D]) dir.x += 1;
-    move(dir.x, dir.y, dt, bounds);
+    if (keyState[keys.up])    dir.y -= 1;
+    if (keyState[keys.down])  dir.y += 1;
+    if (keyState[keys.left])  dir.x -= 1;
+    if (keyState[keys.right]) dir.x += 1;
+    if (dir.x != 0 || dir.y != 0) {
+        float len = std::sqrt(dir.x * dir.x + dir.y * dir.y);
+        dir /= len;
+        pos += dir * speed * dt;
+    }
+    if (bounds) {
+        pos.x = clamp(pos.x, radius, bounds->getWidth() - radius);
+        pos.y = clamp(pos.y, radius, bounds->getHeight() - radius);
+    }
 }
 
-// draw a simple filled circle like Ball::render does (used when no sprite)
+// draw a simple filled circle
 static void drawFilledCircle(SDL_Renderer *renderer, int cx, int cy, int r) {
     for (int dy = -r; dy <= r; ++dy) {
         int dx = static_cast<int>(std::sqrt(r*r - dy*dy));
@@ -33,53 +41,58 @@ void Player::render(SDL_Renderer *renderer, const Field &field,
     float sy = screenH / field.getHeight();
     int px = static_cast<int>(pos.x * sx);
     int py = static_cast<int>(pos.y * sy);
+    int pr = static_cast<int>(radius * std::min(sx, sy));
+    if (pr < 6) pr = 6;
 
-    if (tex) {
-        // draw texture centred on player
-        int w, h;
-        SDL_QueryTexture(tex, nullptr, nullptr, &w, &h);
-        SDL_Rect dst{ px - w/2, py - h/2, w, h };
-        SDL_SetTextureColorMod(tex, color.r, color.g, color.b);
-        SDL_RenderCopy(renderer, tex, nullptr, &dst);
-    } else {
-        int pr = 10; // fixed pixel radius for players
-        SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
-        drawFilledCircle(renderer, px, py, pr);
+    // Player body
+    SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
+    drawFilledCircle(renderer, px, py, pr);
+
+    // Outline
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 200);
+    for (int deg = 0; deg < 360; deg += 2) {
+        float rad = deg * 3.14159f / 180.0f;
+        int bx = px + (int)(pr * std::cos(rad));
+        int by = py + (int)(pr * std::sin(rad));
+        SDL_RenderDrawPoint(renderer, bx, by);
     }
 }
 
 void Team::update(float dt, const Uint8 *keyState, const Field *bounds) {
-    // compute direction according to this team's control mapping
-    Vector dir(0,0);
-    if (keyState[up]) dir.y -= 1;
-    if (keyState[down]) dir.y += 1;
-    if (keyState[left]) dir.x -= 1;
-    if (keyState[right]) dir.x += 1;
-    getActivePlayer().move(dir.x, dir.y, dt, bounds);
+    getActivePlayer().update(dt, keyState, keys, bounds);
 }
 
 void Team::handleEvent(const SDL_Event &e) {
-    if (e.type == SDL_KEYDOWN && e.key.keysym.scancode == swapKey) {
+    if (e.type == SDL_KEYDOWN && e.key.keysym.sym == keys.swap) {
         swapActive();
     }
 }
 
 void Team::render(SDL_Renderer *renderer, const Field &field,
-                  int screenW, int screenH, SDL_Texture *playerTex) const {
-    // draw both players; active one in brighter colour.  use the team's base
-    // color which may vary between teams.
-    SDL_Color bright = teamColor;
-    SDL_Color dark = { static_cast<Uint8>(teamColor.r * 0.6f),
-                       static_cast<Uint8>(teamColor.g * 0.6f),
-                       static_cast<Uint8>(teamColor.b * 0.6f),
-                       teamColor.a };
+                  int screenW, int screenH,
+                  SDL_Color activeColor, SDL_Color inactiveColor) const {
+    // Draw inactive player (dimmer)
+    const Player &inactive = (activeIndex == 0) ? p2 : p1;
+    inactive.render(renderer, field, screenW, screenH, inactiveColor);
 
-    p1.render(renderer, field, screenW, screenH,
-              activeIndex == 0 ? bright : dark,
-              playerTex);
-    p2.render(renderer, field, screenW, screenH,
-              activeIndex == 1 ? bright : dark,
-              playerTex);
+    // Draw active player (brighter) on top
+    const Player &active = (activeIndex == 0) ? p1 : p2;
+    active.render(renderer, field, screenW, screenH, activeColor);
+
+    // Draw an indicator arrow above the active player
+    float sx = screenW / field.getWidth();
+    float sy = screenH / field.getHeight();
+    int ax = static_cast<int>(active.pos.x * sx);
+    int ay = static_cast<int>(active.pos.y * sy);
+    int arrPr = static_cast<int>(active.radius * std::min(sx, sy));
+
+    SDL_SetRenderDrawColor(renderer, 255, 255, 0, 255);
+    // Small triangle above player
+    int triTop = ay - arrPr - 12;
+    int triBot = ay - arrPr - 4;
+    SDL_RenderDrawLine(renderer, ax, triTop, ax - 5, triBot);
+    SDL_RenderDrawLine(renderer, ax, triTop, ax + 5, triBot);
+    SDL_RenderDrawLine(renderer, ax - 5, triBot, ax + 5, triBot);
 }
 
 Player &Team::getActivePlayer() {
@@ -90,8 +103,21 @@ const Player &Team::getActivePlayer() const {
     return (activeIndex == 0) ? p1 : p2;
 }
 
+Player &Team::getInactivePlayer() {
+    return (activeIndex == 0) ? p2 : p1;
+}
+
+const Player &Team::getInactivePlayer() const {
+    return (activeIndex == 0) ? p2 : p1;
+}
+
 void Team::swapActive() {
-    activeIndex = !activeIndex;
+    activeIndex = 1 - activeIndex;
+}
+
+void Team::resetPositions(const Vector &start1, const Vector &start2) {
+    p1.pos = start1;
+    p2.pos = start2;
 }
 
 // new helper for Player movement
