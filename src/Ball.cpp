@@ -28,16 +28,28 @@ void Ball::handlePlayerCollision(const Player& player, float playerRadius) {
     float minDist = radius + playerRadius;
 
     if (dist < minDist && dist > 0.001f) {
-        // Push ball away from player
         Vector normal = diff.normalized();
+        float overlap = minDist - dist;
 
-        // Separate ball from player
-        pos = player.pos + normal * minDist;
+        // Push ball out by exactly the overlap amount (smooth, no teleport)
+        pos += normal * overlap;
 
-        // Calculate bounce velocity
-        // The ball gets "hit" away from the player
-        float hitSpeed = std::max(15.0f, vel.length() + 5.0f);
-        vel = normal * hitSpeed;
+        // Project current velocity onto collision normal
+        float velAlongNormal = vel.dot(normal);
+
+        if (velAlongNormal < 0.0f) {
+            // Ball is moving into the player -> reflect with slight energy loss
+            // Restitution = 0.85 (not perfectly elastic, feels natural)
+            vel -= normal * ((1.0f + 0.85f) * velAlongNormal);
+        }
+
+        // Ensure a minimum outward speed so the ball escapes contact,
+        // but do NOT add speed if already moving away fast enough.
+        float outwardSpeed = vel.dot(normal);
+        float minOutward = 2.0f; // gentle push, not explosive
+        if (outwardSpeed < minOutward) {
+            vel += normal * (minOutward - outwardSpeed);
+        }
     }
 }
 

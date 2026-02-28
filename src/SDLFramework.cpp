@@ -32,6 +32,7 @@ SDLFramework::SDLFramework()
   ballTexture(nullptr), playerTexture(nullptr), running(false), width(800), height(600) {}
 
 SDLFramework::~SDLFramework() {
+    if (playerTexture) SDL_DestroyTexture(playerTexture);
     if (fieldTexture) SDL_DestroyTexture(fieldTexture);
     if (ballTexture) SDL_DestroyTexture(ballTexture);
     if (renderer) SDL_DestroyRenderer(renderer);

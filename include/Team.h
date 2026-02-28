@@ -60,7 +60,8 @@ public:
     void update(float dt, const Uint8 *keyState, const Field *bounds = nullptr);
     void handleEvent(const SDL_Event &e);
     void render(SDL_Renderer *renderer, const Field &field, int screenW, int screenH,
-                SDL_Color activeColor, SDL_Color inactiveColor) const;
+                SDL_Color activeColor, SDL_Color inactiveColor,
+                SDL_Texture *playerTex = nullptr) const;
 
     Player &getActivePlayer();
     const Player &getActivePlayer() const;

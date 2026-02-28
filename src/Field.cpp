@@ -1,6 +1,7 @@
 #include "../include/Field.h"
 #include "../include/Ball.h"
 #include <algorithm>
+#include <cmath>
 
 Field::Field(float width_m, float height_m)
     : width(width_m), height(height_m), goalHeight(6.0f), goalDepth(2.0f) {}
@@ -78,46 +79,82 @@ void Field::render(SDL_Renderer* renderer, int screenW, int screenH,
 
 int Field::handleCollision(Ball& ball) const {
     float goalTop = getGoalTop();
-    float goalBottom = getGoalBottom();
+    float goalBot = getGoalBottom();
+    float r = ball.radius;
+    float e = 0.75f;  // restitution (energy kept per bounce)
 
-    // Top wall
-    if (ball.pos.y - ball.radius < 0.0f) {
-        ball.pos.y = ball.radius;
-        ball.vel.y = -ball.vel.y;
-    }
-    // Bottom wall
-    if (ball.pos.y + ball.radius > height) {
-        ball.pos.y = height - ball.radius;
-        ball.vel.y = -ball.vel.y;
+    // Is ball centre vertically inside the goal opening?
+    bool inGoalY = (ball.pos.y >= goalTop && ball.pos.y <= goalBot);
+
+    // ================================================================
+    // TOP WALL  (y = 0, normal points down into field)
+    // ================================================================
+    if (ball.pos.y - r < 0.0f) {
+        ball.pos.y = r;
+        if (ball.vel.y < 0.0f) ball.vel.y = -ball.vel.y * e;
     }
 
-    // Left wall - check if ball is in goal zone
-    if (ball.pos.x - ball.radius < 0.0f) {
-        if (ball.pos.y >= goalTop && ball.pos.y <= goalBottom) {
-            // Ball entered left goal - team 2 scores
-            if (ball.pos.x < -goalDepth) {
-                return 1; // left goal scored
+    // ================================================================
+    // BOTTOM WALL  (y = height, normal points up)
+    // ================================================================
+    if (ball.pos.y + r > height) {
+        ball.pos.y = height - r;
+        if (ball.vel.y > 0.0f) ball.vel.y = -ball.vel.y * e;
+    }
+
+    // ================================================================
+    // LEFT SIDE  (x = 0)
+    // ================================================================
+    if (ball.pos.x - r < 0.0f) {
+        if (inGoalY) {
+            // Ball is inside the left goal box (rectangle: x in [-goalDepth, 0])
+            // Back wall of goal box
+            if (ball.pos.x - r < -goalDepth) {
+                return 1;  // GOAL! Team 2 scores
             }
-            // Let ball continue into goal zone
+            // Top wall of goal box
+            if (ball.pos.y - r < goalTop) {
+                ball.pos.y = goalTop + r;
+                if (ball.vel.y < 0.0f) ball.vel.y = -ball.vel.y * e;
+            }
+            // Bottom wall of goal box
+            if (ball.pos.y + r > goalBot) {
+                ball.pos.y = goalBot - r;
+                if (ball.vel.y > 0.0f) ball.vel.y = -ball.vel.y * e;
+            }
         } else {
-            ball.pos.x = ball.radius;
-            ball.vel.x = -ball.vel.x;
+            // Solid left wall — bounce back
+            ball.pos.x = r;
+            if (ball.vel.x < 0.0f) ball.vel.x = -ball.vel.x * e;
         }
     }
 
-    // Right wall - check if ball is in goal zone
-    if (ball.pos.x + ball.radius > width) {
-        if (ball.pos.y >= goalTop && ball.pos.y <= goalBottom) {
-            // Ball entered right goal - team 1 scores
-            if (ball.pos.x > width + goalDepth) {
-                return 2; // right goal scored
+    // ================================================================
+    // RIGHT SIDE  (x = width)
+    // ================================================================
+    if (ball.pos.x + r > width) {
+        if (inGoalY) {
+            // Ball is inside the right goal box (rectangle: x in [width, width+goalDepth])
+            // Back wall of goal box
+            if (ball.pos.x + r > width + goalDepth) {
+                return 2;  // GOAL! Team 1 scores
             }
-            // Let ball continue into goal zone
+            // Top wall of goal box
+            if (ball.pos.y - r < goalTop) {
+                ball.pos.y = goalTop + r;
+                if (ball.vel.y < 0.0f) ball.vel.y = -ball.vel.y * e;
+            }
+            // Bottom wall of goal box
+            if (ball.pos.y + r > goalBot) {
+                ball.pos.y = goalBot - r;
+                if (ball.vel.y > 0.0f) ball.vel.y = -ball.vel.y * e;
+            }
         } else {
-            ball.pos.x = width - ball.radius;
-            ball.vel.x = -ball.vel.x;
+            // Solid right wall — bounce back
+            ball.pos.x = width - r;
+            if (ball.vel.x > 0.0f) ball.vel.x = -ball.vel.x * e;
         }
     }
 
-    return 0; // no goal
+    return 0;  // no goal
 }

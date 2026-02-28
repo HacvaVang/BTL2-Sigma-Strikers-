@@ -10,9 +10,9 @@
 #include <cmath>
 #include <string>
 
-// #ifdef _WIN32
-// #include <windows.h>
-// #endif
+#ifdef _WIN32
+#include <windows.h>
+#endif
 
 // ============================================================================
 // Game state
@@ -116,9 +116,11 @@ int main(int argc, char** argv) {
         SDL_Log("Warning: HUD font failed to load");
     }
 
-    // AI Agents (for inactive players)
-    AIAgent ai1(0.6f);  // Team 1 AI (controls inactive player)
-    AIAgent ai2(0.6f);  // Team 2 AI (controls inactive player)
+    // AI Agents
+    // ai1 controls Team 1's inactive player (in all modes)
+    // ai2 controls Team 2 entirely in VS_AI mode, or just inactive player in PvP
+    AIAgent ai1(0.7f);  // Team 1 AI
+    AIAgent ai2(0.8f);  // Team 2 AI (slightly faster reaction for full AI team)
 
     // Game timer
     float matchTime = (float)gSettings.matchDuration;
@@ -186,35 +188,69 @@ int main(int argc, char** argv) {
 
             const Uint8 *keys = SDL_GetKeyboardState(NULL);
 
-            // Update Team 1 (always player-controlled)
+            // Update Team 1 (active player is always human-controlled)
             team1.update(dt, keys, &field);
+            // AI controls Team 1's inactive player (support)
+            ai1.update(dt, team1.getInactivePlayer(), ball, field, true);
 
             // Update Team 2
             if (gameMode == MODE_PVP) {
+                // Human controls active player of Team 2
                 team2.update(dt, keys, &field);
+                // AI controls Team 2's inactive player
+                ai2.update(dt, team2.getInactivePlayer(), ball, field, false);
             } else {
-                // In vs AI mode, AI controls both team2 players
-                ai2.update(dt, team2.getActivePlayer(), ball, field, false);
-                ai2.update(dt, team2.getInactivePlayer(), ball, field, false);
+                // Full AI: updateTeam handles both players with Active/Support
+                // roles, passing logic, and steering behaviors
+                ai2.updateTeam(dt, team2, ball, field, false, team1);
+
+                // Handle passing: when AI decides to pass, apply force to ball
+                if (ai2.didJustPass()) {
+                    float d1 = (team2.p1.pos - ball.pos).length();
+                    float d2 = (team2.p2.pos - ball.pos).length();
+                    Player &passer   = (d1 <= d2) ? team2.p1 : team2.p2;
+                    Player &receiver = (d1 <= d2) ? team2.p2 : team2.p1;
+
+                    Vector passDir = (receiver.pos - ball.pos).normalized();
+                    float passDist = (receiver.pos - ball.pos).length();
+                    float passSpeed = std::min(25.0f, std::max(12.0f, passDist * 1.2f));
+                    ball.vel = passDir * passSpeed;
+                }
+
+                // Handle shooting: when AI decides to shoot, launch ball at goal
+                if (ai2.didJustShoot()) {
+                    Vector target = ai2.getShotTarget();
+                    Vector shotDir = (target - ball.pos).normalized();
+                    float shotDist = (target - ball.pos).length();
+                    // Shot speed: faster than pass, scales with distance
+                    float shotSpeed = std::min(30.0f, std::max(18.0f, shotDist * 1.5f));
+                    ball.vel = shotDir * shotSpeed;
+                }
             }
 
-            // AI controls inactive players (both modes)
-            ai1.update(dt, team1.getInactivePlayer(), ball, field, true);
-            if (gameMode == MODE_PVP) {
-                ai2.update(dt, team2.getInactivePlayer(), ball, field, false);
-            }
+            // ---- Player-to-player collision resolution ----
+            // Prevents all 4 players from overlapping each other
+            resolveAllPlayerCollisions(team1, team2);
 
-            // Update ball
+            // Update ball physics
             ball.update(dt);
 
-            // Ball-player collisions (all 4 players)
-            ball.handlePlayerCollision(team1.p1, team1.p1.radius);
-            ball.handlePlayerCollision(team1.p2, team1.p2.radius);
-            ball.handlePlayerCollision(team2.p1, team2.p1.radius);
-            ball.handlePlayerCollision(team2.p2, team2.p2.radius);
+            // ---- Multi-pass collision resolution ----
+            // Run 3 iterations so that if a player pushes the ball into a wall,
+            // the wall pushes it back, and then player collision can fix it again.
+            // This prevents the ball getting permanently stuck between players & walls.
+            int goalResult = 0;
+            for (int iter = 0; iter < 3; ++iter) {
+                // Ball-player collisions (all 4 players)
+                ball.handlePlayerCollision(team1.p1, team1.p1.radius);
+                ball.handlePlayerCollision(team1.p2, team1.p2.radius);
+                ball.handlePlayerCollision(team2.p1, team2.p1.radius);
+                ball.handlePlayerCollision(team2.p2, team2.p2.radius);
 
-            // Ball-wall collisions & goal detection
-            int goalResult = field.handleCollision(ball);
+                // Ball-wall collisions & goal detection
+                int res = field.handleCollision(ball);
+                if (res != 0) goalResult = res;
+            }
             if (goalResult == 1) {
                 // Left goal - Team 2 scores
                 team2.score++;
@@ -245,9 +281,9 @@ int main(int argc, char** argv) {
         SDL_Color team2Inactive = {140, 40, 40, 200};    // dim red
 
         team1.render(app.getRenderer(), field, app.getWidth(), app.getHeight(),
-                     team1Active, team1Inactive);
+                     team1Active, team1Inactive, app.getPlayerTexture());
         team2.render(app.getRenderer(), field, app.getWidth(), app.getHeight(),
-                     team2Active, team2Inactive);
+                     team2Active, team2Inactive, app.getPlayerTexture());
 
         // Ball
         ball.render(app.getRenderer(), field, app.getWidth(), app.getHeight(),
