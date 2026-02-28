@@ -37,10 +37,14 @@ static void drawFilledCircle(SDL_Renderer *renderer, int cx, int cy, int r) {
 
 void Player::render(SDL_Renderer *renderer, const Field &field,
                     int screenW, int screenH, SDL_Color color, SDL_Texture *tex) const {
-    float sx = screenW / field.getWidth();
-    float sy = screenH / field.getHeight();
-    int px = static_cast<int>(pos.x * sx);
-    int py = static_cast<int>(pos.y * sy);
+    // map world coords into field viewport
+    SDL_FPoint p = field.worldToScreen(pos.x, pos.y, screenW, screenH);
+    SDL_Rect vp = field.getViewport(screenW, screenH);
+    float sx = (float)vp.w / field.getWidth();
+    float sy = (float)vp.h / field.getHeight();
+
+    int px = static_cast<int>(p.x);
+    int py = static_cast<int>(p.y);
     int pr = static_cast<int>(radius * std::min(sx, sy));
     if (pr < 6) pr = 6;
 

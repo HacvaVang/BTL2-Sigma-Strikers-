@@ -51,7 +51,7 @@ int main(int argc, char** argv) {
     SDL_Log("=== Sigma Strikers starting ===");
 
     SDLFramework app;
-    if (!app.init("Sigma Strikers", 1024, 768)) {
+    if (!app.init("Sigma Strikers", 1280, 720)) {
         SDL_Log("Failed to initialize SDL framework");
         return 1;
     }
@@ -264,6 +264,7 @@ int main(int argc, char** argv) {
                 goalMessageTimer = 2.0f;
                 resetAfterGoal(team1, team2, ball, field);
             }
+
         }
 
         // ---- Render ----
@@ -276,9 +277,10 @@ int main(int argc, char** argv) {
 
         // Teams with their colors
         SDL_Color team1Active   = {80, 140, 255, 255};   // bright blue
-        SDL_Color team1Inactive = {40, 70, 140, 200};    // dim blue
-        SDL_Color team2Active   = {255, 80, 80, 255};    // bright red
-        SDL_Color team2Inactive = {140, 40, 40, 200};    // dim red
+        SDL_Color team1Inactive = {40, 70, 100, 180};    // dim blue
+        SDL_Color team2Inactive = {100, 70, 40, 200};    // dim red
+        SDL_Color team2Active   = gameMode == MODE_VS_AI ? team2Inactive : SDL_Color{255, 100, 100, 255};    // bright red
+        
 
         team1.render(app.getRenderer(), field, app.getWidth(), app.getHeight(),
                      team1Active, team1Inactive, app.getPlayerTexture());

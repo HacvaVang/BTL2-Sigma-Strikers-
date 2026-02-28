@@ -29,7 +29,7 @@ bool scaleTexturePercentage(SDL_Texture* &tex, SDL_Renderer* renderer, float sca
 
 SDLFramework::SDLFramework()
 : window(nullptr), renderer(nullptr), fieldTexture(nullptr),
-  ballTexture(nullptr), playerTexture(nullptr), running(false), width(800), height(600) {}
+  ballTexture(nullptr), playerTexture(nullptr), running(false), width(1280), height(720) {}
 
 SDLFramework::~SDLFramework() {
     if (playerTexture) SDL_DestroyTexture(playerTexture);
@@ -74,11 +74,11 @@ bool SDLFramework::init(const std::string &title, int w, int h) {
         std::cerr << "Failed to load ball texture: " << IMG_GetError() << std::endl;
     }
     // load player sprite (optional)
-    playerTexture = IMG_LoadTexture(renderer, "assets/sprite/player.png");
-    scaleTexturePercentage(playerTexture, renderer, 0.08f); // scale player sprite to 50% for better fit
-    if (!playerTexture) {
-        std::cerr << "Failed to load player texture: " << IMG_GetError() << std::endl;
-    }
+    // playerTexture = IMG_LoadTexture(renderer, "assets/sprite/player.png");
+    // scaleTexturePercentage(playerTexture, renderer, 0.08f); // scale player sprite to 50% for better fit
+    // if (!playerTexture) {
+    //     std::cerr << "Failed to load player texture: " << IMG_GetError() << std::endl;
+    // }
 
     running = true;
     return true;
@@ -122,12 +122,12 @@ bool SDLFramework::setResolution(int w, int h) {
     if (!ballTexture) {
         std::cerr << "Failed to reload ball texture: " << IMG_GetError() << std::endl;
     }
-    playerTexture = IMG_LoadTexture(renderer, "assets/sprite/player.png");
-    scaleTexturePercentage(playerTexture, renderer, 0.08f); // scale player sprite to 50% for better fit
+    // playerTexture = IMG_LoadTexture(renderer, "assets/sprite/player.png");
+    // scaleTexturePercentage(playerTexture, renderer, 0.08f); // scale player sprite to 50% for better fit
 
-    if (!playerTexture) {
-        std::cerr << "Failed to load player texture: " << IMG_GetError() << std::endl;
-    }    
+    // if (!playerTexture) {
+    //     std::cerr << "Failed to load player texture: " << IMG_GetError() << std::endl;
+    // }    
 
     return true;
 }

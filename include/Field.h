@@ -33,12 +33,18 @@ public:
     float getGoalDepth() const { return goalDepth; }
     float getGoalHeight() const { return goalHeight; }
 
+    // Transform from field world-space into the rectangle where the field is
+    // actually drawn. The viewport is used by rendering routines for players
+    // and the ball so they stay inside the pitch rather than the whole window.
+    SDL_Rect getViewport(int screenW, int screenH) const;
+    // convert a world coordinate to screen pixels
+    SDL_FPoint worldToScreen(float worldX, float worldY, int screenW, int screenH) const;
+
+
 private:
     float width;   // metres
     float height;  // metres
     float goalHeight; // height of goal opening (metres)
     float goalDepth;  // how deep the goal extends behind the wall (metres)
 
-    // convert a world coordinate to screen pixels
-    SDL_FPoint worldToScreen(float worldX, float worldY, int screenW, int screenH) const;
 };

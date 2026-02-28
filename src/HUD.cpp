@@ -66,11 +66,11 @@ void HUD::render(SDL_Renderer *renderer, int screenW, int screenH,
     SDL_Color goldColor = {255, 215, 0, 255};
 
     // Team labels and scores
-    std::string team1Text = "TEAM 1: " + std::to_string(score1);
-    std::string team2Text = "TEAM 2: " + std::to_string(score2);
+    std::string team1Text = std::to_string(score1);
+    std::string team2Text = std::to_string(score2);
 
-    drawText(renderer, team1Text, 20, 10, blueColor);
-    drawText(renderer, team2Text, screenW - 180, 10, redColor);
+    drawText(renderer, team1Text, (int)(screenW * .25f), 25, blueColor, bigFont, true);
+    drawText(renderer, team2Text, (int)(screenW * .75f), 25, redColor, bigFont, true );
 
     // Timer in center
     int minutes = (int)timeRemaining / 60;
@@ -89,9 +89,9 @@ void HUD::render(SDL_Renderer *renderer, int screenW, int screenH,
 
     drawText(renderer, oss.str(), screenW / 2, 25, timerColor, bigFont, true);
 
-    // Score separator
-    std::string scoreDisplay = std::to_string(score1) + " - " + std::to_string(score2);
-    drawText(renderer, scoreDisplay, screenW / 2, 8, whiteColor, nullptr, true);
+    // // Score separator
+    // std::string scoreDisplay = std::to_string(score1) + " - " + std::to_string(score2);
+    // drawText(renderer, scoreDisplay, screenW / 2, 8, whiteColor, nullptr, true);
 }
 
 void HUD::renderMessage(SDL_Renderer *renderer, int screenW, int screenH,

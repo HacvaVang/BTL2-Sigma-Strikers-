@@ -8,15 +8,32 @@ Field::Field(float width_m, float height_m)
 
 SDL_FPoint Field::worldToScreen(float worldX, float worldY,
                                 int screenW, int screenH) const {
-    float sx = screenW / width;
-    float sy = screenH / height;
-    return SDL_FPoint{ worldX * sx, worldY * sy };
+    // compute the same viewport used by render()
+    int fieldW = (int)(screenW * 0.95f);
+    int fieldH = fieldW / 2;
+    int fieldX = (screenW - fieldW) / 2;
+    int fieldY = screenH - fieldH;
+
+    float sx = (float)fieldW / width;
+    float sy = (float)fieldH / height;
+
+    return SDL_FPoint{ fieldX + worldX * sx,
+                       fieldY + worldY * sy };
+}
+
+SDL_Rect Field::getViewport(int screenW, int screenH) const {
+    int fieldW = (int)(screenW * 0.95f);
+    int fieldH = fieldW / 2;
+    int fieldX = (screenW - fieldW) / 2;
+    int fieldY = screenH - fieldH;
+    return SDL_Rect{ fieldX, fieldY, fieldW, fieldH };
 }
 
 void Field::render(SDL_Renderer* renderer, int screenW, int screenH,
                       SDL_Texture *texture) const {
-    // if we have a background texture, stretch it to cover the window
-    SDL_Rect bg{0, 0, screenW, screenH};
+    int fieldW = (int)(screenW * 0.95f);
+    int fieldH = fieldW / 2;
+    SDL_Rect bg{(screenW - fieldW) / 2, screenH - fieldH, fieldW, fieldH};
     if (texture) {
         SDL_RenderCopy(renderer, texture, nullptr, &bg);
     } else {
@@ -25,20 +42,29 @@ void Field::render(SDL_Renderer* renderer, int screenW, int screenH,
         SDL_RenderFillRect(renderer, &bg);
     }
 
-    float sx = (float)screenW / width;
-    float sy = (float)screenH / height;
+    // scaling factors for world coordinates -> field viewport
+    float sx = (float)fieldW / width;
+    float sy = (float)fieldH / height;
 
-    // Draw center line
+    // helper lambda to transform an x/y pair
+    auto toScreen = [&](float wx, float wy) {
+        SDL_FPoint p = worldToScreen(wx, wy, screenW, screenH);
+        return p;
+    };
+
+    // Draw center line (in world coords x = width/2 from y=0..height)
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 100);
-    int centerX = screenW / 2;
-    SDL_RenderDrawLine(renderer, centerX, 0, centerX, screenH);
+    SDL_FPoint p1 = toScreen(width / 2.0f, 0.0f);
+    SDL_FPoint p2 = toScreen(width / 2.0f, height);
+    SDL_RenderDrawLine(renderer, (int)p1.x, (int)p1.y, (int)p2.x, (int)p2.y);
 
     // Draw center circle
     int circleR = (int)(3.0f * std::min(sx, sy));
+    SDL_FPoint center = toScreen(width / 2.0f, height / 2.0f);
     for (int dy = -circleR; dy <= circleR; ++dy) {
         int dx = (int)std::sqrt((float)(circleR * circleR - dy * dy));
-        SDL_RenderDrawPoint(renderer, centerX - dx, screenH / 2 + dy);
-        SDL_RenderDrawPoint(renderer, centerX + dx, screenH / 2 + dy);
+        SDL_RenderDrawPoint(renderer, (int)center.x - dx, (int)center.y + dy);
+        SDL_RenderDrawPoint(renderer, (int)center.x + dx, (int)center.y + dy);
     }
 
     // Draw goal zones
@@ -49,32 +75,36 @@ void Field::render(SDL_Renderer* renderer, int screenW, int screenH,
     int gb = (int)(goalBottomY * sy);
     int gd = (int)(goalDepth * sx);
 
-    // Left goal (blue tint)
+    // Left goal (blue tint) - convert to screen coords manually since we have
+    // computed gt/gb/gd in field-relative pixels. fieldX offset must be added.
+    int fieldX = bg.x;
     SDL_SetRenderDrawColor(renderer, 50, 100, 200, 120);
-    SDL_Rect leftGoal = {0, gt, gd, gb - gt};
+    SDL_Rect leftGoal = { fieldX, bg.y + gt, gd, gb - gt };
     SDL_RenderFillRect(renderer, &leftGoal);
     SDL_SetRenderDrawColor(renderer, 100, 150, 255, 255);
     SDL_RenderDrawRect(renderer, &leftGoal);
 
     // Right goal (red tint)
     SDL_SetRenderDrawColor(renderer, 200, 50, 50, 120);
-    SDL_Rect rightGoal = {screenW - gd, gt, gd, gb - gt};
+    SDL_Rect rightGoal = { fieldX + fieldW - gd, bg.y + gt, gd, gb - gt };
     SDL_RenderFillRect(renderer, &rightGoal);
     SDL_SetRenderDrawColor(renderer, 255, 100, 100, 255);
     SDL_RenderDrawRect(renderer, &rightGoal);
 
-    // Draw the four barriers as a thin white border
+    // Draw the four barriers as a thin white border around the viewport
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
     // Top wall
-    SDL_RenderDrawLine(renderer, 0, 0, screenW, 0);
+    SDL_RenderDrawLine(renderer, fieldX, bg.y, fieldX + fieldW, bg.y);
     // Bottom wall
-    SDL_RenderDrawLine(renderer, 0, screenH - 1, screenW, screenH - 1);
+    SDL_RenderDrawLine(renderer, fieldX, bg.y + fieldH - 1,
+                       fieldX + fieldW, bg.y + fieldH - 1);
     // Left wall (excluding goal opening)
-    SDL_RenderDrawLine(renderer, 0, 0, 0, gt);
-    SDL_RenderDrawLine(renderer, 0, gb, 0, screenH);
+    SDL_RenderDrawLine(renderer, fieldX, bg.y, fieldX, bg.y + gt);
+    SDL_RenderDrawLine(renderer, fieldX, bg.y + gb, fieldX, bg.y + fieldH);
     // Right wall (excluding goal opening)
-    SDL_RenderDrawLine(renderer, screenW - 1, 0, screenW - 1, gt);
-    SDL_RenderDrawLine(renderer, screenW - 1, gb, screenW - 1, screenH);
+    SDL_RenderDrawLine(renderer, fieldX + fieldW - 1, bg.y, fieldX + fieldW - 1, bg.y + gt);
+    SDL_RenderDrawLine(renderer, fieldX + fieldW - 1, bg.y + gb,
+                       fieldX + fieldW - 1, bg.y + fieldH);
 }
 
 int Field::handleCollision(Ball& ball) const {
@@ -109,7 +139,7 @@ int Field::handleCollision(Ball& ball) const {
         if (inGoalY) {
             // Ball is inside the left goal box (rectangle: x in [-goalDepth, 0])
             // Back wall of goal box
-            if (ball.pos.x - r < -goalDepth) {
+            if (ball.pos.x - r < -2 * r) {
                 return 1;  // GOAL! Team 2 scores
             }
             // Top wall of goal box
@@ -136,7 +166,7 @@ int Field::handleCollision(Ball& ball) const {
         if (inGoalY) {
             // Ball is inside the right goal box (rectangle: x in [width, width+goalDepth])
             // Back wall of goal box
-            if (ball.pos.x + r > width + goalDepth) {
+            if (ball.pos.x + r > width + 2 * r) {
                 return 2;  // GOAL! Team 1 scores
             }
             // Top wall of goal box
