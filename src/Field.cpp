@@ -1,4 +1,5 @@
 #include "../include/Field.h"
+#include "../include/Obstacle.h"
 #include "../include/Ball.h"
 #include <algorithm>
 #include <cmath>
@@ -27,6 +28,20 @@ SDL_Rect Field::getViewport(int screenW, int screenH) const {
     int fieldX = (screenW - fieldW) / 2;
     int fieldY = screenH - fieldH;
     return SDL_Rect{ fieldX, fieldY, fieldW, fieldH };
+}
+
+// ---------------------------------------------------------------------------
+// obstacle & player helper implementations
+// ---------------------------------------------------------------------------
+
+void Field::addObstacle(const Obstacle &obs) {
+    obstacles.push_back(obs);
+}
+
+void Field::handlePlayerCollision(Player &player) const {
+    for (const Obstacle &obs : obstacles) {
+        obs.resolvePlayerCollision(player);
+    }
 }
 
 void Field::render(SDL_Renderer* renderer, int screenW, int screenH,
@@ -105,6 +120,11 @@ void Field::render(SDL_Renderer* renderer, int screenW, int screenH,
     SDL_RenderDrawLine(renderer, fieldX + fieldW - 1, bg.y, fieldX + fieldW - 1, bg.y + gt);
     SDL_RenderDrawLine(renderer, fieldX + fieldW - 1, bg.y + gb,
                        fieldX + fieldW - 1, bg.y + fieldH);
+
+    // render any obstacles after field elements so they appear on top
+    for (const Obstacle &obs : obstacles) {
+        obs.render(renderer, *this, screenW, screenH);
+    }
 }
 
 int Field::handleCollision(Ball& ball) const {
@@ -184,6 +204,11 @@ int Field::handleCollision(Ball& ball) const {
             ball.pos.x = width - r;
             if (ball.vel.x > 0.0f) ball.vel.x = -ball.vel.x * e;
         }
+    }
+
+    // finally handle collisions with obstacles
+    for (const Obstacle &obs : obstacles) {
+        obs.handleBallCollision(ball);
     }
 
     return 0;  // no goal

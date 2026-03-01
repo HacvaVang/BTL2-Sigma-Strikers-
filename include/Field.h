@@ -1,8 +1,11 @@
 #pragma once
 
 #include <SDL.h>
+#include <vector>
 
 class Ball; // forward
+class Player; // forward declaration for player collision
+class Obstacle; // forward declaration for obstacles
 
 // Represents a rectangular hockey field with boundary barriers and goal zones.
 // The field dimensions are specified in metres; rendering is scaled to the
@@ -27,6 +30,14 @@ public:
     float getWidth() const { return width; }
     float getHeight() const { return height; }
 
+    // add an obstacle to the field geometry; obstacles are considered during
+    // collision checks and rendered on top of the grass.
+    void addObstacle(const Obstacle &obs);
+    const std::vector<Obstacle> &getObstacles() const { return obstacles; }
+
+    // resolve a player overlapping any obstacle (called by the game loop)
+    void handlePlayerCollision(Player &player) const;
+
     // Goal zone dimensions (in metres)
     float getGoalTop() const { return height / 2.0f - goalHeight / 2.0f; }
     float getGoalBottom() const { return height / 2.0f + goalHeight / 2.0f; }
@@ -47,4 +58,6 @@ private:
     float goalHeight; // height of goal opening (metres)
     float goalDepth;  // how deep the goal extends behind the wall (metres)
 
+    // static obstacles on the pitch
+    std::vector<Obstacle> obstacles;
 };

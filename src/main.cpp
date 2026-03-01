@@ -1,5 +1,6 @@
 #include "../include/SDLFramework.h"
 #include "../include/Field.h"
+#include "../include/Obstacle.h"
 #include "../include/Ball.h"
 #include "../include/Team.h"
 #include "../include/Menu.h"
@@ -86,7 +87,22 @@ int main(int argc, char** argv) {
 
     // ---- Initialize Game Objects ----
     Field field(40.0f, 20.0f);
-
+    // place a couple of fixed obstacles on the pitch for testing
+    field.addObstacle(Obstacle(Vector(field.getWidth() * 0.5f,
+                                      field.getHeight() * 0.5f),
+                               4.0f, 4.0f));
+    field.addObstacle(Obstacle(Vector(field.getWidth() * 0.2f,
+                                      field.getHeight() * 0.2f),
+                               1.25f, 3.0f));
+    field.addObstacle(Obstacle(Vector(field.getWidth() * 0.8f,
+                                      field.getHeight() * 0.8f),
+                               1.25f, 3.0f));
+    field.addObstacle(Obstacle(Vector(field.getWidth() * 0.75f,
+                                      field.getHeight() * 0.25f),
+                               4.0f, 1.0f));
+    field.addObstacle(Obstacle(Vector(field.getWidth() * 0.25f,
+                                      field.getHeight() * 0.75f),
+                               4.0f, 1.0f));
     // Ball starts at center, stationary
     Ball ball(
         Vector(field.getWidth() / 2.0f, field.getHeight() / 2.0f),
@@ -247,7 +263,13 @@ int main(int argc, char** argv) {
                 ball.handlePlayerCollision(team2.p1, team2.p1.radius);
                 ball.handlePlayerCollision(team2.p2, team2.p2.radius);
 
-                // Ball-wall collisions & goal detection
+                // player-obstacle resolution
+                field.handlePlayerCollision(team1.p1);
+                field.handlePlayerCollision(team1.p2);
+                field.handlePlayerCollision(team2.p1);
+                field.handlePlayerCollision(team2.p2);
+
+                // Ball-wall/obstacle collisions & goal detection
                 int res = field.handleCollision(ball);
                 if (res != 0) goalResult = res;
             }

@@ -23,6 +23,7 @@ add_executable(sigma_strikers
     src/Menu.cpp
     src/Team.cpp
     src/Field.cpp
+    src/Obstacle.cpp
     src/Ball.cpp
     src/AIAgent.cpp
     src/HUD.cpp
