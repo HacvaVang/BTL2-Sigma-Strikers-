@@ -16,6 +16,11 @@ void Ball::update(float dt) {
     // Apply friction (slight deceleration each frame)
     vel *= friction;
 
+    // ma sat
+    if (vel.length() >= 0.0) {
+        vel = vel * 0.95;
+    }
+
     // Stop ball if very slow
     if (vel.length() < 0.1f) {
         vel = Vector(0, 0);
@@ -46,7 +51,7 @@ void Ball::handlePlayerCollision(const Player& player, float playerRadius) {
         // Ensure a minimum outward speed so the ball escapes contact,
         // but do NOT add speed if already moving away fast enough.
         float outwardSpeed = vel.dot(normal);
-        float minOutward = 2.0f; // gentle push, not explosive
+        float minOutward = 60.0f; // gentle push, not explosive
         if (outwardSpeed < minOutward) {
             vel += normal * (minOutward - outwardSpeed);
         }
