@@ -53,7 +53,7 @@ static float clampF(float v, float lo, float hi) {
 }
 
 bool AIAgent::hasPossession(const Player &player, const Ball &ball) const {
-    float contactDist = player.radius + ball.radius + 0.3f;
+    float contactDist = player.radius + ball.radius;
     return (player.pos - ball.pos).length() < contactDist;
 }
 
